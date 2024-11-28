@@ -1,18 +1,20 @@
-import React, { useState, useRef, useEffect } from "react";
-import {Select} from "antd";
+import React, {useState, useRef, useEffect} from "react";
+import {Button, Select} from "antd";
+
+const CANVAS_WIDTH = 500;
+const CANVAS_HEIGHT = 500;
 
 const QuadrantChart = () => {
     const canvasRef = useRef(null);
-    const [selceted, setSelceted] = useState(null);
+    const [selected, setSelected] = useState("石榴");
     const handleChange = (value) => {
-        console.log(`selected ${value}`);
-        setSelceted(value)
+        setSelected(value);
     };
     const [score, setScore] = useState({
         x: 0,
         y: 0,
-        coordinates: { x: 0, y: 0 },
-        clickCoords: { x: 0, y: 0 } // 用来保存点击位置
+        coordinates: {x: 0, y: 0},
+        clickCoords: {x: 0, y: 0} // 用来保存点击位置
     });
 
     // 绘制四象限图，包括坐标轴和之前的红点
@@ -79,23 +81,8 @@ const QuadrantChart = () => {
         setScore({
             x: quadrantX,
             y: quadrantY,
-            coordinates: { x: coordinateX, y: coordinateY },
-            clickCoords: { x, y } // 存储点击位置
-        });
-
-        // 将坐标信息发送到后端
-        fetch("http://localhost:8000/api/score", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                score: {
-                    quadrantX,
-                    quadrantY,
-                    coordinates: { x: coordinateX, y: coordinateY }
-                },
-            }),
+            coordinates: {x: coordinateX, y: coordinateY},
+            clickCoords: {x, y} // 存储点击位置
         });
     };
 
@@ -115,14 +102,14 @@ const QuadrantChart = () => {
             // 绘制红点
             ctx.beginPath();
             ctx.arc(score.clickCoords.x, score.clickCoords.y, 5, 0, 2 * Math.PI); // 半径5的圆
-            ctx.fillStyle = "red";
+            ctx.fillStyle = "black";
             ctx.fill();
 
             // 绘制从点击位置到X轴的线
             ctx.beginPath();
             ctx.moveTo(score.clickCoords.x, score.clickCoords.y);
             ctx.lineTo(score.clickCoords.x, midY);
-            ctx.strokeStyle = "red";
+            ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
             ctx.stroke();
 
@@ -130,28 +117,44 @@ const QuadrantChart = () => {
             ctx.beginPath();
             ctx.moveTo(score.clickCoords.x, score.clickCoords.y);
             ctx.lineTo(midX, score.clickCoords.y);
-            ctx.strokeStyle = "red";
+            ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
             ctx.stroke();
         }
     }, [score]);
 
+    const [average, setAverage] = useState({name: "", x: 0, y: 0});
+
+    useEffect(() => {
+        // 获取后端数据并渲染平均值
+        fetch("http://127.0.0.1:8000/api/submissions")
+            .then((response) => response.json())
+            .then((data) => {
+                const userData = data.data.find((user) => user.name === selected);
+                console.log(data)
+                if (userData) {
+                    setAverage({x: userData.average_x, y: userData.average_y, name: userData.name});
+                }
+            })
+            .catch((error) => {
+                console.error("Failed to fetch submissions:", error);
+            });
+    }, [selected]);
+
+
     return (
         <div>
             <Select
-                defaultValue="lucy"
-                style={{ width: 120 }}
+                defaultValue="石榴"
+                style={{width: 120}}
                 onChange={handleChange}
                 options={[
-                    { value: 'jack', label: 'Jack' },
-                    { value: 'lucy', label: 'Lucy' },
-                    { value: 'Yiminghe', label: 'yiminghe' },
-                    { value: 'disabled', label: 'Disabled', disabled: true },
+                    {value: "石榴", label: '石榴'},
+                    {value: '岳岳', label: '岳岳'},
+                    {value: '糖糖', label: '糖糖'},
                 ]}
             />
-            <h1>
-                请选择{selceted}的傻逼四象限
-            </h1>
+            <h1>请选择{selected}的傻逼四象限</h1>
             <canvas
                 ref={canvasRef}
                 width={500}
@@ -159,11 +162,43 @@ const QuadrantChart = () => {
                 onClick={handleCanvasClick}
             />
             <div>
-                <h3>选中的四象限和坐标:</h3>
-                <p>水平: {score.x}</p>
-                <p>垂直: {score.y}</p>
-                <p>坐标: (x: {score.coordinates.x}, y: {score.coordinates.y})</p>
+                <h2>
+                    您给{selected}评价的 {score.x}{Math.abs(score.coordinates.x)}分, {score.y} {Math.abs(score.coordinates.y)}分
+                </h2>
             </div>
+            <Button
+                type={"primary"}
+                onClick={() => {
+                    fetch("http://localhost:8000/api/score", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            name: selected,
+                            score: {
+                                quadrantX: score.x,
+                                quadrantY: score.y,
+                                coordinates: score.coordinates
+                            },
+                        }),
+                    });
+                }}
+            >
+                提交
+            </Button>
+            <br/>
+            <br/>
+            <br/>
+            {/* Second canvas for showing only the score */}
+            <h1>
+                {average.name}的平均分是
+                {average.x > 0? "地偶吃" : "坂狗"}
+                {average.x.toFixed(2)}
+                {average.y > 0? "傻逼" : "坂狗"}
+
+                {average.y.toFixed(2)}
+            </h1>
         </div>
     );
 };
