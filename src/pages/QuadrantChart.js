@@ -1,8 +1,9 @@
-import React, {useState, useRef, useEffect} from "react";
-import {Button, Select} from "antd";
+import React, { useState, useRef, useEffect } from "react";
+import { Button, Select } from "antd";
 
 const CANVAS_WIDTH = 500;
 const CANVAS_HEIGHT = 500;
+const HOST_NAME ='https://api.densu.xyz';
 
 const QuadrantChart = () => {
     const canvasRef = useRef(null);
@@ -13,8 +14,8 @@ const QuadrantChart = () => {
     const [score, setScore] = useState({
         x: 0,
         y: 0,
-        coordinates: {x: 0, y: 0},
-        clickCoords: {x: 0, y: 0} // 用来保存点击位置
+        coordinates: { x: 0, y: 0 },
+        clickCoords: { x: 0, y: 0 }, // 用来保存点击位置
     });
 
     // 绘制四象限图，包括坐标轴和之前的红点
@@ -81,8 +82,8 @@ const QuadrantChart = () => {
         setScore({
             x: quadrantX,
             y: quadrantY,
-            coordinates: {x: coordinateX, y: coordinateY},
-            clickCoords: {x, y} // 存储点击位置
+            coordinates: { x: coordinateX, y: coordinateY },
+            clickCoords: { x, y }, // 存储点击位置
         });
     };
 
@@ -123,17 +124,21 @@ const QuadrantChart = () => {
         }
     }, [score]);
 
-    const [average, setAverage] = useState({name: "", x: 0, y: 0});
+    const [average, setAverage] = useState({ name: "", x: 0, y: 0 });
 
     useEffect(() => {
+        console.log("Fetching data for:", selected); // Debugging
         // 获取后端数据并渲染平均值
-        fetch("http://127.0.0.1:8000/api/submissions")
+        fetch(HOST_NAME+"/api/submissions")
             .then((response) => response.json())
             .then((data) => {
                 const userData = data.data.find((user) => user.name === selected);
-                console.log(data)
                 if (userData) {
-                    setAverage({x: userData.average_x, y: userData.average_y, name: userData.name});
+                    setAverage({
+                        x: userData.average_x,
+                        y: userData.average_y,
+                        name: userData.name,
+                    });
                 }
             })
             .catch((error) => {
@@ -141,35 +146,30 @@ const QuadrantChart = () => {
             });
     }, [selected]);
 
-
     return (
         <div>
             <Select
                 defaultValue="石榴"
-                style={{width: 120}}
+                style={{ width: 120 }}
                 onChange={handleChange}
                 options={[
-                    {value: "石榴", label: '石榴'},
-                    {value: '岳岳', label: '岳岳'},
-                    {value: '糖糖', label: '糖糖'},
+                    { value: "石榴", label: "石榴" },
+                    { value: "岳岳", label: "岳岳" },
+                    { value: "糖糖", label: "糖糖" },
                 ]}
             />
+            <h1>
+                {average.name}的分数是
+                {average.x > 0 ? "地偶吃" : "坂狗"}
+                {Math.abs(average.x).toFixed(2)}
+                {average.y > 0 ? "傻逼" : "坂狗"}
+                {Math.abs(average.y).toFixed(2)}
+            </h1>
             <h1>请选择{selected}的傻逼四象限</h1>
-            <canvas
-                ref={canvasRef}
-                width={500}
-                height={500}
-                onClick={handleCanvasClick}
-            />
-            <div>
-                <h2>
-                    您给{selected}评价的 {score.x}{Math.abs(score.coordinates.x)}分, {score.y} {Math.abs(score.coordinates.y)}分
-                </h2>
-            </div>
             <Button
                 type={"primary"}
                 onClick={() => {
-                    fetch("http://localhost:8000/api/score", {
+                    fetch(HOST_NAME+"/api/score", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -179,26 +179,48 @@ const QuadrantChart = () => {
                             score: {
                                 quadrantX: score.x,
                                 quadrantY: score.y,
-                                coordinates: score.coordinates
+                                coordinates: score.coordinates,
                             },
                         }),
-                    });
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            console.log(data);
+                            if (data.average) {
+                                setAverage({ x: data.average.x, y: data.average.y, name: selected });
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Failed to fetch submissions:", error);
+                        });
                 }}
             >
                 提交
             </Button>
-            <br/>
-            <br/>
-            <br/>
-            {/* Second canvas for showing only the score */}
-            <h1>
-                {average.name}的平均分是
-                {average.x > 0? "地偶吃" : "坂狗"}
-                {average.x.toFixed(2)}
-                {average.y > 0? "傻逼" : "坂狗"}
-
-                {average.y.toFixed(2)}
-            </h1>
+            <br />
+            <div>
+                <h2>
+                    您给{selected}评价的 {score.x}{Math.abs(score.coordinates.x)}分, {score.y}{" "}
+                    {Math.abs(score.coordinates.y)}分
+                </h2>
+            </div>
+            <div
+                style={{
+                    border: "3px solid black",
+                    height: "500px",
+                    width: "500px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                }}
+            >
+                <canvas
+                    ref={canvasRef}
+                    width={500}
+                    height={500}
+                    onClick={handleCanvasClick}
+                />
+            </div>
         </div>
     );
 };
