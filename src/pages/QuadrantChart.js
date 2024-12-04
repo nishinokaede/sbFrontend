@@ -1,21 +1,21 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Button, Select } from "antd";
+import React, {useState, useRef, useEffect} from "react";
+import {Button, Select, Splitter, Table} from "antd";
 
-const CANVAS_WIDTH = 500;
-const CANVAS_HEIGHT = 500;
-const HOST_NAME ='https://api.densu.xyz';
+const HOST_NAME = 'https://api.densu.xyz';
 
 const QuadrantChart = () => {
     const canvasRef = useRef(null);
     const [selected, setSelected] = useState("石榴");
+    const [data, setData] = useState();
+
     const handleChange = (value) => {
         setSelected(value);
     };
     const [score, setScore] = useState({
         x: 0,
         y: 0,
-        coordinates: { x: 0, y: 0 },
-        clickCoords: { x: 0, y: 0 }, // 用来保存点击位置
+        coordinates: {x: 0, y: 0},
+        clickCoords: {x: 0, y: 0}, // 用来保存点击位置
     });
 
     // 绘制四象限图，包括坐标轴和之前的红点
@@ -82,8 +82,8 @@ const QuadrantChart = () => {
         setScore({
             x: quadrantX,
             y: quadrantY,
-            coordinates: { x: coordinateX, y: coordinateY },
-            clickCoords: { x, y }, // 存储点击位置
+            coordinates: {x: coordinateX, y: coordinateY},
+            clickCoords: {x, y}, // 存储点击位置
         });
     };
 
@@ -124,14 +124,16 @@ const QuadrantChart = () => {
         }
     }, [score]);
 
-    const [average, setAverage] = useState({ name: "", x: 0, y: 0 });
+    const [average, setAverage] = useState({name: "", x: 0, y: 0});
 
     useEffect(() => {
         console.log("Fetching data for:", selected); // Debugging
         // 获取后端数据并渲染平均值
-        fetch(HOST_NAME+"/api/submissions")
+        fetch(HOST_NAME + "/api/submissions")
             .then((response) => response.json())
             .then((data) => {
+                setData(data.data);
+                console.log(data.data);
                 const userData = data.data.find((user) => user.name === selected);
                 if (userData) {
                     setAverage({
@@ -147,81 +149,126 @@ const QuadrantChart = () => {
     }, [selected]);
 
     return (
-        <div>
-            <Select
-                defaultValue="石榴"
-                style={{ width: 120 }}
-                onChange={handleChange}
-                options={[
-                    { value: "石榴", label: "石榴" },
-                    { value: "岳岳", label: "岳岳" },
-                    { value: "糖糖", label: "糖糖" },
-                ]}
-            />
-            <h1>
-                {average.name}的分数是
-                {average.x > 0 ? "地偶吃" : "坂狗"}
-                {Math.abs(average.x).toFixed(2)}
-                {average.y > 0 ? "傻逼" : "坂狗"}
-                {Math.abs(average.y).toFixed(2)}
-            </h1>
-            <h1>请选择{selected}的傻逼四象限</h1>
-            <Button
-                type={"primary"}
-                onClick={() => {
-                    fetch(HOST_NAME+"/api/score", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            name: selected,
-                            score: {
-                                quadrantX: score.x,
-                                quadrantY: score.y,
-                                coordinates: score.coordinates,
+        <>
+            <Splitter style={{boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)'}}>
+                <Splitter.Panel defaultSize="40%" min="20%" max="70%">
+                    <div>
+                        <Select
+                            defaultValue="石榴"
+                            style={{width: 120}}
+                            onChange={handleChange}
+                            options={[
+                                {value: "石榴", label: "石榴"},
+                                {value: "岳岳", label: "岳岳"},
+                                {value: "糖糖", label: "糖糖"},
+                                {value: "出生", label: "出生"},
+                                {value: "柯基", label: "柯基"},
+                                {value: "圆圆", label: "圆圆"},
+                                {value: "鸽子", label: "鸽子"},
+                                {value: "米神", label: "米神"},
+                                {value: "赵哥", label: "赵哥"},
+                                {value: "路易", label: "路易"},
+                                {value: "zoo", label: "zoo"},
+                                {value: "獭子", label: "獭子"},
+                                {value: "陀螺", label: "陀螺"},
+                                {value: "李叔叔", label: "李叔叔"},
+                                {value: "橘子", label: "橘子"},
+                                {value: "小康", label: "小康"},
+                            ]}
+                        />
+                        <h1>
+                            {average.name}的分数是
+                            {average.x > 0 ? "地偶吃" : "坂狗"}
+                            {Math.abs(average.x).toFixed(2)}
+                            {average.y > 0 ? "傻逼" : "坂狗"}
+                            {Math.abs(average.y).toFixed(2)}
+                        </h1>
+                        <h1>请选择{selected}的傻逼四象限</h1>
+                        <Button
+                            type={"primary"}
+                            onClick={() => {
+                                fetch(HOST_NAME + "/api/score", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        name: selected,
+                                        score: {
+                                            quadrantX: score.x,
+                                            quadrantY: score.y,
+                                            coordinates: score.coordinates,
+                                        },
+                                    }),
+                                })
+                                    .then((response) => response.json())
+                                    .then((data) => {
+                                        console.log(data);
+                                        if (data.average) {
+                                            setAverage({x: data.average.x, y: data.average.y, name: selected});
+                                        }
+                                    })
+                                    .catch((error) => {
+                                        console.error("Failed to fetch submissions:", error);
+                                    });
+                            }}
+                        >
+                            提交
+                        </Button>
+                        <br/>
+                        <div>
+                            <h2>
+                                您给{selected}评价的 {score.x}{Math.abs(score.coordinates.x)}分, {score.y}{" "}
+                                {Math.abs(score.coordinates.y)}分
+                            </h2>
+                        </div>
+                        <div
+                            style={{
+                                border: "3px solid black",
+                                height: "500px",
+                                width: "500px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                            }}
+                        >
+                            <canvas
+                                ref={canvasRef}
+                                width={500}
+                                height={500}
+                                onClick={handleCanvasClick}
+                            />
+                        </div>
+                    </div>
+                </Splitter.Panel>
+                <Splitter.Panel>
+                    <Table
+                        dataSource={data}
+                        columns={[
+                            {
+                                title: '群友',
+                                dataIndex: 'name',
+                                width: '20%',
+                                key: 'name',
+                            }, {
+                                title: '地偶吃程度',
+                                dataIndex: 'average_x',
+                                sorter: (a, b) => a.average_x - b.average_x,
+                                key: 'average_x',
+                                render: (num) => parseFloat(num.toFixed(2)),
+                            }, {
+                                title: 'sb程度',
+                                key: 'sb',
+                                dataIndex: 'average_y',
+                                render: (num) => parseFloat(num.toFixed(2)),
+                                sorter: (a, b) => a.average_y - b.average_y,
                             },
-                        }),
-                    })
-                        .then((response) => response.json())
-                        .then((data) => {
-                            console.log(data);
-                            if (data.average) {
-                                setAverage({ x: data.average.x, y: data.average.y, name: selected });
-                            }
-                        })
-                        .catch((error) => {
-                            console.error("Failed to fetch submissions:", error);
-                        });
-                }}
-            >
-                提交
-            </Button>
-            <br />
-            <div>
-                <h2>
-                    您给{selected}评价的 {score.x}{Math.abs(score.coordinates.x)}分, {score.y}{" "}
-                    {Math.abs(score.coordinates.y)}分
-                </h2>
-            </div>
-            <div
-                style={{
-                    border: "3px solid black",
-                    height: "500px",
-                    width: "500px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                }}
-            >
-                <canvas
-                    ref={canvasRef}
-                    width={500}
-                    height={500}
-                    onClick={handleCanvasClick}
-                />
-            </div>
-        </div>
+                        ]}
+                    />
+                </Splitter.Panel>
+            </Splitter>
+        </>
+
     );
 };
 
